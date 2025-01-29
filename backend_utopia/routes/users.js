@@ -5,7 +5,7 @@ import User from "../models/signup.js"; // Ensure this path is correct
 
 const router = express.Router();
 
-// Helper function to generate a simple unique code
+
 const generateUniqueCode = (name) => {
   if (!name) {
     throw new Error("Name is required to generate a unique code.");
