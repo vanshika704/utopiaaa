@@ -1,6 +1,6 @@
 
 import express from "express";
-import bcrypt from "bcrypt"; // Import bcryptjs
+import bcrypt from "bcrypt"; 
 import User from "../models/signup.js"; // Ensure this path is correct
 
 const router = express.Router();
