@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
-// User Routes
+// User Route
 app.use("/api/users", userRoutes);
 
 app.listen(PORT, () => {
