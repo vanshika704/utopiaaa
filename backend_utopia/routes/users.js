@@ -16,7 +16,7 @@ const generateUniqueCode = (name) => {
     .join("")
     .toUpperCase();
   const randomNumber = Math.floor(1000 + Math.random() * 9000); // Random 4-digit number
-  return `${initials}-${randomNumber}`;
+  return `${initials}${randomNumber}`;
 };
 
 // User Signup route
@@ -97,6 +97,27 @@ router.post('/login', async (req, res) => {
         uniqueCode: user.uniqueCode,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.post("/trigger-emergency", async (req, res) => {
+  const { uniqueCode } = req.body;
+  if (!uniqueCode) {
+    return res.status(400).json({ message: "Unique code is required" });
+  }
+
+  try {
+    const user = await User.findOne({ uniqueCode });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Notify emergency contacts (implement actual SMS/email logic)
+    console.log(`Emergency alert sent for ${user.name}`);
+
+    res.status(200).json({ message: "Emergency alert triggered!" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

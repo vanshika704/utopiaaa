@@ -45,7 +45,7 @@ dependencies:
   camera: ^0.11.0+2
   location: ^7.0.1
   picovoice_flutter: ^3.0.4
-  shared_preferences: ^2.3.5
+  shared_preferences: ^2.5.1
   geolocator: ^13.0.2
   twilio_flutter: ^0.9.0
   flutter_local_notifications: ^18.0.1
