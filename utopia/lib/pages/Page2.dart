@@ -3,6 +3,7 @@
 // import 'package:flutter/material.dart';
 // import 'package:get/get.dart';
 // import 'package:http/http.dart' as http;
+// import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 // import 'page3.dart';  // Import your Page3 widget
 
 // class SignupPage extends StatefulWidget {
@@ -23,7 +24,7 @@
 //   Future<void> signupUser() async {
 //     final String apiUrl = "https://utopiaa-rqkd.onrender.com/api/users/signup"; // Replace with your local IP
 
-//     // Validate the input fields
+//     // Validate input fields
 //     if (nameController.text.isEmpty ||
 //         emailController.text.isEmpty ||
 //         passwordController.text.isEmpty) {
@@ -38,11 +39,11 @@
 //         body: jsonEncode({
 //           "name": nameController.text,
 //           "email": emailController.text,
-//           "password": passwordController.text, // Ensure password is used here
+//           "password": passwordController.text,
 //         }),
 //       );
 
-//       // Log the response status and body for debugging
+//       // Debugging: Log response
 //       print("Response status: ${response.statusCode}");
 //       print("Response body: ${response.body}");
 
@@ -52,14 +53,19 @@
 //           uniqueCode = data['user']['uniqueCode'];
 //         });
 
-//         // Show success message with unique code
+//         // Store unique code in SharedPreferences
+//         SharedPreferences prefs = await SharedPreferences.getInstance();
+//         await prefs.setString("uniqueCode", uniqueCode!);
+//         print("Unique Code Saved: $uniqueCode");
+
+//         // Show success message
 //         Get.snackbar("Signup Successful", "Your Unique Code: $uniqueCode");
 
 //         // Show the unique code in a modal dialog
 //         showDialog(
 //           context: context,
 //           builder: (_) => AlertDialog(
-//             title: Text("Your Unique Code"),
+//             title: const Text("Your Unique Code"),
 //             content: Text("Your Unique Code is: $uniqueCode"),
 //             actions: [
 //               TextButton(
@@ -67,19 +73,19 @@
 //                   Navigator.of(context).pop(); // Close the modal
 //                   Get.off(VoiceButtonPage()); // Navigate to Page3
 //                 },
-//                 child: Text("OK"),
+//                 child: const Text("OK"),
 //               ),
 //             ],
 //           ),
 //         );
-//         // Log user info to the console
+
+//         // Debugging: Log user info
 //         print("User registered: ${data['user']}");
 //       } else {
 //         final error = jsonDecode(response.body)['message'];
 //         Get.snackbar("Signup Failed", error);
 //       }
 //     } catch (e) {
-//       // Log the error if something goes wrong with the request
 //       print("Error: $e");
 //       Get.snackbar("Signup Failed", "An error occurred. Please try again.");
 //     }
@@ -111,7 +117,7 @@
 //                   const SizedBox(height: 16.0),
 //                   buildTextField(emailController, "Email", Icons.email),
 //                   const SizedBox(height: 16.0),
-//                   buildTextField(passwordController, "Password", Icons.password), // Ensure password is here
+//                   buildTextField(passwordController, "Password", Icons.lock, isPassword: true),
 //                   const SizedBox(height: 25.0),
 //                   ElevatedButton(
 //                     onPressed: signupUser,
@@ -155,11 +161,12 @@
 //     );
 //   }
 
-//   Widget buildTextField(TextEditingController controller, String label, IconData icon) {
+//   Widget buildTextField(TextEditingController controller, String label, IconData icon, {bool isPassword = false}) {
 //     return Container(
 //       width: MediaQuery.of(context).size.width * 0.8,
 //       child: TextFormField(
 //         controller: controller,
+//         obscureText: isPassword,
 //         decoration: InputDecoration(
 //           labelText: label,
 //           prefixIcon: Icon(icon),
@@ -174,12 +181,13 @@
 //     );
 //   }
 // }
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
-import 'page3.dart';  // Import your Page3 widget
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'page3.dart'; // Import your Page3 widget
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -197,69 +205,71 @@ class _SignupPageState extends State<SignupPage> {
 
   // Function to handle signup
   Future<void> signupUser() async {
-    final String apiUrl = "https://utopiaa-rqkd.onrender.com/api/users/signup"; // Replace with your local IP
+    final String name = nameController.text;
+    final String email = emailController.text;
+    final String password = passwordController.text;
 
     // Validate input fields
-    if (nameController.text.isEmpty ||
-        emailController.text.isEmpty ||
-        passwordController.text.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       Get.snackbar("Validation Error", "Name, email, and password are required.");
       return;
     }
 
     try {
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "name": nameController.text,
-          "email": emailController.text,
-          "password": passwordController.text,
-        }),
+      // Create unique code based on name
+      String generateUniqueCode(String name) {
+        final initials = name
+            .split(" ")
+            .map((word) => word[0])
+            .join("")
+            .toUpperCase();
+        final randomNumber = (1000 + (9000 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt(); 
+        return '$initials$randomNumber';
+      }
+
+      uniqueCode = generateUniqueCode(name);
+      
+      // Firebase Authentication - Create User with email and password
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
-      // Debugging: Log response
-      print("Response status: ${response.statusCode}");
-      print("Response body: ${response.body}");
+      // Store the unique code and other user info in Firestore
+      FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'name': name,
+        'email': email,
+        'uniqueCode': uniqueCode,
+      });
 
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          uniqueCode = data['user']['uniqueCode'];
-        });
+      // Store unique code in SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString("uniqueCode", uniqueCode!);
+      print("Unique Code Saved: $uniqueCode");
 
-        // Store unique code in SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("uniqueCode", uniqueCode!);
-        print("Unique Code Saved: $uniqueCode");
+      // Show success message
+      Get.snackbar("Signup Successful", "Your Unique Code: $uniqueCode");
 
-        // Show success message
-        Get.snackbar("Signup Successful", "Your Unique Code: $uniqueCode");
+      // Show the unique code in a modal dialog
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Your Unique Code"),
+          content: Text("Your Unique Code is: $uniqueCode"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the modal
+                Get.off(VoiceButtonPage()); // Navigate to Page3
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
 
-        // Show the unique code in a modal dialog
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text("Your Unique Code"),
-            content: Text("Your Unique Code is: $uniqueCode"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the modal
-                  Get.off(VoiceButtonPage()); // Navigate to Page3
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
-
-        // Debugging: Log user info
-        print("User registered: ${data['user']}");
-      } else {
-        final error = jsonDecode(response.body)['message'];
-        Get.snackbar("Signup Failed", error);
-      }
+      // Debugging: Log user info
+      print("User registered: ${userCredential.user!.email}");
     } catch (e) {
       print("Error: $e");
       Get.snackbar("Signup Failed", "An error occurred. Please try again.");
@@ -282,7 +292,7 @@ class _SignupPageState extends State<SignupPage> {
                 children: [
                   const SizedBox(height: 25),
                   Image.asset(
-                    'assets/istockphoto-1353464216-612x612 1 (3).png',
+                    'assets/istockphoto-1353464216-612x612 1 (3).png', // Update image path accordingly
                     width: MediaQuery.of(context).size.width * 0.9,
                     height: MediaQuery.of(context).size.height * 0.4,
                     fit: BoxFit.cover,

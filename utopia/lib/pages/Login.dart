@@ -3,6 +3,7 @@
 // import 'package:flutter/material.dart';
 // import 'package:get/get.dart';
 // import 'package:http/http.dart' as http;
+// import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 // import 'page3.dart'; // Import Page3 if it's not using named routes
 
 // class LoginPage extends StatefulWidget {
@@ -37,6 +38,11 @@
 //       if (response.statusCode == 200) {
 //         final data = jsonDecode(response.body);
 
+//         // Store unique code in SharedPreferences
+//         SharedPreferences prefs = await SharedPreferences.getInstance();
+//         await prefs.setString("uniqueCode", data['user']['uniqueCode']);
+//         print("Unique Code Saved: ${data['user']['uniqueCode']}");
+
 //         // Show success message
 //         Get.snackbar(
 //           "Login Successful",
@@ -44,11 +50,8 @@
 //           snackPosition: SnackPosition.BOTTOM,
 //         );
 
-//         // Log user info to the console
-//         print("User logged in: ${data['user']}");
-
 //         // Navigate to Page3 (Pass user data if necessary)
-//         Get.off(VoiceButtonPage()); // Navigate to Page3 and pass user data
+//         Get.off(VoiceButtonPage()); // Navigate to Page3
 
 //       } else {
 //         // Handle errors better
@@ -103,7 +106,6 @@
 //                       shape: RoundedRectangleBorder(
 //                         borderRadius: BorderRadius.circular(10),
 //                       ),
-                      
 //                       padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 16.0),
 //                     ),
 //                     child: const Text(
@@ -152,12 +154,11 @@
 //     );
 //   }
 // }
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
-import 'page3.dart'; // Import Page3 if it's not using named routes
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'page3.dart'; // Import your next page
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -169,67 +170,35 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Function to handle login
   Future<void> loginUser() async {
-    final String apiUrl = "https://utopiaa-rqkd.onrender.com/api/users/login"; // Replace with your local IP
-
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      Get.snackbar("Validation Error", "Please fill in all fields", snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     try {
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": emailController.text,
-          "password": passwordController.text,
-        }),
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
 
-      // Debugging: Log the response status and body
-      print("Response status: ${response.statusCode}");
-      print("Response body: ${response.body}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        // Store unique code in SharedPreferences
+      User? user = userCredential.user;
+      if (user != null) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("uniqueCode", data['user']['uniqueCode']);
-        print("Unique Code Saved: ${data['user']['uniqueCode']}");
+        await prefs.setString("userEmail", user.email ?? "");
 
-        // Show success message
-        Get.snackbar(
-          "Login Successful",
-          "Welcome back, ${data['user']['name']}!",
-          snackPosition: SnackPosition.BOTTOM,
-        );
-
-        // Navigate to Page3 (Pass user data if necessary)
-        Get.off(VoiceButtonPage()); // Navigate to Page3
-
-      } else {
-        // Handle errors better
-        final error = jsonDecode(response.body)['message'];
-        Get.snackbar(
-          "Login Failed",
-          error,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar("Login Successful", "Welcome back, ${user.email}!", snackPosition: SnackPosition.BOTTOM);
+        Get.off(() => VoiceButtonPage());
       }
     } catch (e) {
-      // Show detailed error message if something goes wrong
-      print("Error: $e");
-      Get.snackbar(
-        "Error",
-        "Something went wrong. Please try again.",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar("Login Failed", e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: const Color.fromRGBO(251, 217, 197, 1),
       body: Stack(
@@ -256,15 +225,10 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: loginUser,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A2D26),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 16.0),
                     ),
-                    child: const Text(
-                      "Login",
-                      style: TextStyle(color: Colors.white , fontSize: 16),
-                    ),
+                    child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ],
               ),
@@ -276,10 +240,7 @@ class _LoginPageState extends State<LoginPage> {
               width: screenWidth * 0.50,
               height: 4,
               margin: const EdgeInsets.only(bottom: 6),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 0, 0, 0),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -288,7 +249,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget buildTextField(TextEditingController controller, String label, IconData icon, {bool isPassword = false}) {
-    return Container(
+    return SizedBox(
       width: MediaQuery.of(context).size.width * 0.8,
       child: TextFormField(
         controller: controller,
@@ -298,10 +259,7 @@ class _LoginPageState extends State<LoginPage> {
           prefixIcon: Icon(icon),
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
-            borderSide: BorderSide.none,
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30.0), borderSide: BorderSide.none),
         ),
       ),
     );
