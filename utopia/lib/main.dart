@@ -81,7 +81,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Flutter Demo',
+      title: 'Utopia',
       debugShowCheckedModeBanner: false,
       initialRoute: '/splash', // Initial route
       getPages: [
