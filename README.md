@@ -20,6 +20,12 @@ Utopia is a **voice-activated safety app** designed to provide quick and reliabl
 - **Instant Help**: Real-time alerts and location sharing for fast response.
 - **Privacy-Focused**: Secure data storage and encryption to protect sensitive information.
 
+## MVP Link 🌟
+Check out the MVP [here](https://drive.google.com/file/d/1t8ogw0P2wSjGDDuXpAnYA93IzYYVVHQ7/view?usp=sharing).
+
+## Video Demo 🎬
+Watch the app in action on [YouTube](https://youtu.be/E_PxrOF8dFA?si=7HO6UaPg-aw1H2IR).
+
 ## Get Started 🚀
 1. Install Utopia 📱
 2. Set up your safety phrase 🗣️
