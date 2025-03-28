@@ -52,7 +52,7 @@ class _Page1State extends State<Page1> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // First Row with Two Buttons
+                
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

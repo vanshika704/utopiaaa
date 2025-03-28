@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:utopia/pages/emergency.dart';
 import 'page3.dart'; // Import your next page
 
 class LoginPage extends StatefulWidget {
